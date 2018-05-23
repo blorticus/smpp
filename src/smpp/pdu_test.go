@@ -97,7 +97,7 @@ func TestPDUsWithParameters(t *testing.T) {
 
 }
 
-func TestPDUDecode(t *testing.T) {
+func TestCommandDataSmDecode(t *testing.T) {
 	_, err := DecodePDU([]byte{
 		0x0, 0x0, 0x0, 0x10,
 		0x0, 0x0, 0x1, 0x03,
@@ -125,43 +125,127 @@ func TestPDUDecode(t *testing.T) {
 		0x4,
 	}
 
-	pdu, err := DecodePDU(encoded)
+	testPDUDecode(t, "CommandDataSm-1", encoded, 0x2d, 0x103, 0, 0x419, 9, 0)
+}
+
+func TestCommandBindTransmitterRespPDU(t *testing.T) {
+	testname := "Command bind-transmitter-resp-1"
+
+	encoded := []byte{
+		0x0, 0x0, 0x0, 0x17,
+		0x80, 0x0, 0x0, 0x02,
+		0x0, 0x0, 0x0, 0x0,
+		0x0, 0x0, 0x0, 0x1,
+		0x73, 0x6d, 0x73, 0x63, 0x30, 0x31, 0x0,
+	}
+
+	bindTransmitterResp := NewPDU(CommandBindTransmitterResp, 0, 1, []*Parameter{
+		NewCOctetStringParameter("smsc01"), // system_id
+	}, []*Parameter{})
+
+	btEncode, err := bindTransmitterResp.Encode()
 
 	if err != nil {
-		t.Errorf("Error on DecodePDU with short CommandDataSm message: %s", err)
+		t.Error("Test ", testname, ": failed to encode PDU: ", err)
+	} else {
+		if len(encoded) != len(btEncode) {
+			t.Errorf("Test %s: length of encoded [%d] != length of Encode() output [%d]", testname, len(encoded), len(btEncode))
+		} else {
+			for i := 0; i < len(encoded); i++ {
+				if encoded[i] != btEncode[i] {
+					t.Errorf("Test %s: encoded and Encode() output begin differing at byte (%d), expect (%02x), got (%02x)", testname, i, encoded[i], btEncode[i])
+					break
+				}
+			}
+		}
 	}
 
-	if pdu.CommandLength != 45 {
-		t.Errorf("DecodePDU with short CommandDataSm message, commandLength = (%d), should be (45)", pdu.CommandLength)
+	testPDUDecode(t, testname, encoded, 23, 0x80000002, 0x0, 0x01, 1, 0)
+}
+
+func TestCommandBindTransmitterPDU(t *testing.T) {
+	encoded := []byte{
+		0x0, 0x0, 0x0, 0x2c, //length
+		0x0, 0x0, 0x0, 0x02, // command ID
+		0x0, 0x0, 0x0, 0x0, // status
+		0x0, 0x0, 0x0, 0x1, // sequence number
+		0x65, 0x73, 0x6d, 0x65, 0x30, 0x31, 0x00, // system_id = esme01
+		0x70, 0x61, 0x73, 0x73, 0x77, 0x6f, 0x72, 0x64, 0x00, // password = password
+		0x67, 0x65, 0x6e, 0x65, 0x72, 0x69, 0x63, 0x0, // system_type = generic
+		0x34, // interface_version
+		0x0,  // addr_ton
+		0x0,  // addr_npi
+		0x0,  // address_range = ""
 	}
 
-	if pdu.CommandID != CommandDataSm {
-		t.Errorf("DecodePDU with short CommandDataSm message, type is not CommandDataSm")
+	bindTransmitter := NewPDU(CommandBindTransmitter, 0, 1, []*Parameter{
+		NewCOctetStringParameter("esme01"),   // system_id
+		NewCOctetStringParameter("password"), // password
+		NewCOctetStringParameter("generic"),  // system_type
+		NewFLParameter(uint8(0x34)),          // interface_version
+		NewFLParameter(uint8(0x0)),           // addr_ton
+		NewFLParameter(uint8(0x0)),           // addr_npi
+		NewCOctetStringParameter(""),         // address_range
+	}, []*Parameter{})
+
+	btEncode, err := bindTransmitter.Encode()
+
+	if err != nil {
+		t.Error("Command bind-transmitter-1: failed to encode PDU: ", err)
+	} else {
+		if len(encoded) != len(btEncode) {
+			t.Errorf("Command bind-transmitter-1: length of encoded [%d] != length of Encode() output [%d]", len(encoded), len(btEncode))
+		} else {
+			for i := 0; i < len(encoded); i++ {
+				if encoded[i] != btEncode[i] {
+					t.Errorf("Command bind-transmitter-1: encoded and Encode() output begin differing at byte (%d), expect (%02x), got (%02x)", i, encoded[i], btEncode[i])
+					break
+				}
+			}
+		}
 	}
 
-	if pdu.CommandStatus != 0 {
-		t.Errorf("DecodePDU with short CommandDataSm message, CommandStatus should be (0), is (%d)", pdu.CommandStatus)
+	testPDUDecode(t, "Command bind-transmitter-1", encoded, 44, 0x02, 0x0, 0x01, 7, 0)
+}
+
+func testPDUDecode(t *testing.T, testname string, encodedPDU []byte, expectedCommandLength uint32, expectedCommandID CommandIDType, expectedStatus uint32, expectedSequence uint32, expectedMParamCount uint32, expectedOParamCount uint32) {
+	pdu, err := DecodePDU(encodedPDU)
+
+	if err != nil {
+		t.Errorf("Test %s: failed to decode, error = %s", testname, err)
 	}
 
-	if pdu.SequenceNumber != 1049 {
-		t.Errorf("DecodePDU with short CommandDataSm message, SequenceNumber should be (1049), is (%d)", pdu.SequenceNumber)
+	if pdu.CommandLength != expectedCommandLength {
+		t.Errorf("Test %s: commandLength should be (%d), is (%d)", testname, expectedCommandLength, pdu.CommandLength)
 	}
 
-	if len(pdu.MandatoryParameters) != 9 {
-		t.Errorf("DecodePDU with short CommandDataSm message, should have (9) MandatoryParameters, have (%d)", len(pdu.MandatoryParameters))
+	if pdu.CommandID != expectedCommandID {
+		t.Errorf("Test %s: CommandID should be (%08x), is (%08x)", testname, expectedCommandID, pdu.CommandID)
 	}
 
-	if len(pdu.OptionalParameters) != 0 {
-		t.Errorf("DecodePDU with short CommandDataSm message, should have (0) OptionalParameters, have (%d)", len(pdu.OptionalParameters))
+	if pdu.CommandStatus != expectedStatus {
+		t.Errorf("Test %s: CommandStatus should be (%d), is (%d)", testname, expectedStatus, pdu.CommandStatus)
+	}
+
+	if pdu.SequenceNumber != expectedSequence {
+		t.Errorf("Test %s: SequenceNumber should be (%d), is (%d)", testname, expectedSequence, pdu.SequenceNumber)
+	}
+
+	if len(pdu.MandatoryParameters) != int(expectedMParamCount) {
+		t.Errorf("Test %s: count of mandatory parameters should be (%d), is (%d)", testname, expectedMParamCount, len(pdu.MandatoryParameters))
+	}
+
+	if len(pdu.OptionalParameters) != int(expectedOParamCount) {
+		t.Errorf("Test %s: count of optional parameters should be (%d), is (%d)", testname, expectedOParamCount, len(pdu.OptionalParameters))
 	}
 
 	reEncoded, err := pdu.Encode()
 
 	if err != nil {
-		t.Errorf("DecodePDU with short CommandDataSm message, error on pdu.Encode(): %s", err)
+		t.Errorf("Test %s: error on pdu.Encode() = %s", testname, err)
 	} else {
-		if !bytes.Equal(reEncoded, encoded) {
-			t.Errorf("DecodePDU with short CommandDataSm message, pdu.Encode() does not match original encoding")
+		if !bytes.Equal(reEncoded, encodedPDU) {
+			t.Errorf("Test %s: pdu.Encode() does not match original encoding", testname)
 		}
 	}
 }

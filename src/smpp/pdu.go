@@ -284,11 +284,16 @@ type PDUDefinition struct {
 }
 
 var pduTypeDefinition = map[CommandIDType]PDUDefinition{
-	CommandGenericNack:         PDUDefinition{CommandGenericNack, 0, []string{}},
-	CommandBindReceiver:        PDUDefinition{CommandBindReceiver, 0, []string{}},
-	CommandBindReceiverResp:    PDUDefinition{CommandBindReceiverResp, 0, []string{}},
-	CommandBindTransmitter:     PDUDefinition{CommandBindTransmitter, 0, []string{}},
-	CommandBindTransmitterResp: PDUDefinition{CommandBindTransmitterResp, 0, []string{}},
+	CommandGenericNack:      PDUDefinition{CommandGenericNack, 0, []string{}},
+	CommandBindReceiver:     PDUDefinition{CommandBindReceiver, 0, []string{}},
+	CommandBindReceiverResp: PDUDefinition{CommandBindReceiverResp, 0, []string{}},
+	CommandBindTransmitter: PDUDefinition{CommandBindTransmitter, 0, []string{
+		"system_id", "password", "system_type", "interface_version", "addr_ton",
+		"addr_npi", "address_range",
+	}},
+	CommandBindTransmitterResp: PDUDefinition{CommandBindTransmitterResp, 0, []string{
+		"system_id",
+	}},
 	CommandQuerySm:             PDUDefinition{CommandQuerySm, 0, []string{}},
 	CommandQuerySmResp:         PDUDefinition{CommandQuerySmResp, 0, []string{}},
 	CommandSubmitSm:            PDUDefinition{CommandSubmitSm, 0, []string{}},
@@ -395,7 +400,7 @@ func DecodePDU(stream []byte) (*PDU, error) {
 		return nil, fmt.Errorf("Stream length field value (%d) is less than minimum (16)", pduLength)
 	}
 
-	if pduLength != uint32(len(stream)) {
+	if pduLength > uint32(len(stream)) {
 		return nil, fmt.Errorf("Stream length field value is (%d) but stream length is (%d)", pduLength, len(stream))
 	}
 
@@ -450,7 +455,7 @@ func DecodePDU(stream []byte) (*PDU, error) {
 		case TypeCOctetString:
 			nullOffset := bytes.IndexByte(stream[s:], 0)
 
-			if nullOffset < 1 {
+			if nullOffset < 0 {
 				return nil, fmt.Errorf("Require C-String-Octet type but failed to find null terminator")
 			}
 
