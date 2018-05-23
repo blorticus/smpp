@@ -12,3 +12,6 @@
 *.out
 bin/dlv
 pkg/darwin_amd64/smpp.a
+
+foo
+foo.*
