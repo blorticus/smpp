@@ -1,6 +1,7 @@
 package smpp
 
 import (
+	"bytes"
 	"testing"
 )
 
@@ -15,13 +16,13 @@ func TestSimplePDUs(t *testing.T) {
 
 func TestPDUsWithParameters(t *testing.T) {
 	runPDUTest(t, "PDU with Mandatory Params Only", CommandDataSm, 0, 0x419, []*Parameter{
-		NewASCIIParameter("WAP"),
+		NewCOctetStringParameter("WAP"),
 		NewFLParameter(uint8(0)),
 		NewFLParameter(uint8(1)),
-		NewASCIIParameter("10597"),
+		NewCOctetStringParameter("10597"),
 		NewFLParameter(uint8(1)),
 		NewFLParameter(uint8(1)),
-		NewASCIIParameter("+18809990011"),
+		NewCOctetStringParameter("+18809990011"),
 		NewFLParameter(uint8(0)),
 		NewFLParameter(uint8(4)),
 	}, []*Parameter{}, 45, []byte{
@@ -40,14 +41,14 @@ func TestPDUsWithParameters(t *testing.T) {
 		0x4,
 	})
 
-	runPDUTest(t, "PDU with Mandatory Params Only", CommandDataSm, 0, 0x419, []*Parameter{
-		NewASCIIParameter("WAP"),
+	runPDUTest(t, "PDU with Mandatory and Optional Params", CommandDataSm, 0, 0x419, []*Parameter{
+		NewCOctetStringParameter("WAP"),
 		NewFLParameter(uint8(0)),
 		NewFLParameter(uint8(1)),
-		NewASCIIParameter("10597"),
+		NewCOctetStringParameter("10597"),
 		NewFLParameter(uint8(1)),
 		NewFLParameter(uint8(1)),
-		NewASCIIParameter("+18809990011"),
+		NewCOctetStringParameter("+18809990011"),
 		NewFLParameter(uint8(0)),
 		NewFLParameter(uint8(4)),
 	}, []*Parameter{
@@ -94,6 +95,75 @@ func TestPDUsWithParameters(t *testing.T) {
 		0x04, 0x21, 0x00, 0x01, 0x0,
 	})
 
+}
+
+func TestPDUDecode(t *testing.T) {
+	_, err := DecodePDU([]byte{
+		0x0, 0x0, 0x0, 0x10,
+		0x0, 0x0, 0x1, 0x03,
+		0x0, 0x0, 0x0, 0x00,
+		0x0, 0x0, 0x4, 0x19,
+	})
+
+	if err == nil {
+		t.Errorf("No Error on DecodePDU when its just Header for CommandDataSm")
+	}
+
+	encoded := []byte{
+		0x0, 0x0, 0x0, 0x2d, // length
+		0x0, 0x0, 0x1, 0x03, // command ID
+		0x0, 0x0, 0x0, 0x0, // status
+		0x0, 0x0, 0x4, 0x19, // sequence number
+		0x57, 0x41, 0x50, 0x0,
+		0x0,
+		0x1,
+		0x31, 0x30, 0x35, 0x39, 0x37, 0x0,
+		0x1,
+		0x1,
+		0x2b, 0x31, 0x38, 0x38, 0x30, 0x39, 0x39, 0x39, 0x30, 0x30, 0x31, 0x31, 0x0,
+		0x0,
+		0x4,
+	}
+
+	pdu, err := DecodePDU(encoded)
+
+	if err != nil {
+		t.Errorf("Error on DecodePDU with short CommandDataSm message: %s", err)
+	}
+
+	if pdu.CommandLength != 45 {
+		t.Errorf("DecodePDU with short CommandDataSm message, commandLength = (%d), should be (45)", pdu.CommandLength)
+	}
+
+	if pdu.CommandID != CommandDataSm {
+		t.Errorf("DecodePDU with short CommandDataSm message, type is not CommandDataSm")
+	}
+
+	if pdu.CommandStatus != 0 {
+		t.Errorf("DecodePDU with short CommandDataSm message, CommandStatus should be (0), is (%d)", pdu.CommandStatus)
+	}
+
+	if pdu.SequenceNumber != 1049 {
+		t.Errorf("DecodePDU with short CommandDataSm message, SequenceNumber should be (1049), is (%d)", pdu.SequenceNumber)
+	}
+
+	if len(pdu.MandatoryParameters) != 9 {
+		t.Errorf("DecodePDU with short CommandDataSm message, should have (9) MandatoryParameters, have (%d)", len(pdu.MandatoryParameters))
+	}
+
+	if len(pdu.OptionalParameters) != 0 {
+		t.Errorf("DecodePDU with short CommandDataSm message, should have (0) OptionalParameters, have (%d)", len(pdu.OptionalParameters))
+	}
+
+	reEncoded, err := pdu.Encode()
+
+	if err != nil {
+		t.Errorf("DecodePDU with short CommandDataSm message, error on pdu.Encode(): %s", err)
+	} else {
+		if !bytes.Equal(reEncoded, encoded) {
+			t.Errorf("DecodePDU with short CommandDataSm message, pdu.Encode() does not match original encoding")
+		}
+	}
 }
 
 func runPDUTest(t *testing.T, testname string, commandID CommandIDType, status uint32, sequence uint32, mandatoryParams []*Parameter, optionalParams []*Parameter, expectedLength uint32, expectedEncoding []byte) {

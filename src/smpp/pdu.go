@@ -1,7 +1,10 @@
 package smpp
 
 import (
+	"bytes"
+	"container/list"
 	"encoding/binary"
+	"fmt"
 )
 
 // ParameterType is an enumeration of parameter types
@@ -14,8 +17,8 @@ const (
 	TypeUint16
 	// TypeUint32 encoded as four bytes, unsigned 32-bit integer
 	TypeUint32
-	// TypeASCII encoded as variable length field of bytes, must be NULL (0) terminated
-	TypeASCII
+	// TypeCOctetString encoded as variable length field of bytes, must be NULL (0) terminated
+	TypeCOctetString
 	// TypeOctetString encoded as variable length field of bytes
 	TypeOctetString
 	// TypeTLV encodes as octet string
@@ -35,6 +38,92 @@ type Parameter struct {
 	Type         ParameterType
 	EncodeLength uint32
 	Value        interface{}
+}
+
+// ParameterDefinition provides attributes for a Parameter.  MaxLength will
+// be set to the fixed length for fixed length types (e.g., TypeUint32).  If there is no
+// MaxLength for a variable sized type (e.g., TypeASCII), then MaxLength will be set to zero.
+// TagID is set only if the type is TypeTLV; otherwise it is zero.
+type ParameterDefinition struct {
+	Name      string
+	Type      ParameterType
+	MaxLength uint16
+	TagID     uint16
+}
+
+var parameterTypeDefinition = map[string]ParameterDefinition{
+	// Mandatory Parameter Set
+	"addr_ton":                ParameterDefinition{"addr_ton", TypeUint8, 1, 0},
+	"addr_npi":                ParameterDefinition{"addr_npi", TypeUint8, 1, 0},
+	"address_range":           ParameterDefinition{"address_range", TypeCOctetString, 41, 0},
+	"data_coding":             ParameterDefinition{"data_coding", TypeUint8, 1, 0},
+	"destination_addr":        ParameterDefinition{"destination_addr", TypeCOctetString, 21, 0},
+	"destination_addr_npi":    ParameterDefinition{"source_addr_npi", TypeUint8, 1, 0},
+	"destination_addr_ton":    ParameterDefinition{"source_addr_ton", TypeUint8, 1, 0},
+	"esm_class":               ParameterDefinition{"esm_class", TypeUint8, 1, 0},
+	"interface_version":       ParameterDefinition{"interface_version", TypeUint8, 1, 0},
+	"password":                ParameterDefinition{"password", TypeCOctetString, 9, 0},
+	"priority_flag":           ParameterDefinition{"priority_flag", TypeUint8, 1, 0},
+	"protocol_id":             ParameterDefinition{"protocol_id", TypeUint8, 1, 0},
+	"registered_delivery":     ParameterDefinition{"registered_delivery", TypeUint8, 1, 0},
+	"replace_if_present_flag": ParameterDefinition{"replace_if_present_flag", TypeUint8, 1, 0},
+	"schedule_delivery_time":  ParameterDefinition{"schedule_delivery_time", TypeCOctetString, 21, 0},
+	"service_type":            ParameterDefinition{"service_type", TypeCOctetString, 9, 0},
+	"short_message":           ParameterDefinition{"short_message", TypeCOctetString, 254, 0},
+	"sm_default_msg_id":       ParameterDefinition{"sm_default_msg_id", TypeUint8, 1, 0},
+	"sm_length":               ParameterDefinition{"sm_length", TypeUint8, 1, 0},
+	"source_addr_npi":         ParameterDefinition{"source_addr_npi", TypeUint8, 1, 0},
+	"source_addr_ton":         ParameterDefinition{"source_addr_ton", TypeUint8, 1, 0},
+	"source_addr":             ParameterDefinition{"source_addr", TypeCOctetString, 21, 0},
+	"system_id":               ParameterDefinition{"system_id", TypeCOctetString, 16, 0},
+	"system_type":             ParameterDefinition{"system_type", TypeCOctetString, 13, 0},
+	"validity_period":         ParameterDefinition{"validity_period", TypeCOctetString, 21, 0},
+
+	// Optional Parameter Set
+	"SC_interface_version":        ParameterDefinition{"SC_interface_version", TypeTLV, 0, 0x0210},
+	"additional_status_info_text": ParameterDefinition{"additional_status_info_text", TypeTLV, 0, 0x001D},
+	"alert_on_message_delivery":   ParameterDefinition{"alert_on_message_delivery", TypeTLV, 0, 0x130C},
+	"callback_num":                ParameterDefinition{"callback_num", TypeTLV, 0, 0x0381},
+	"callback_num_atag":           ParameterDefinition{"callback_num_atag", TypeTLV, 0, 0x0303},
+	"callback_num_pres_ind":       ParameterDefinition{"callback_num_pres_ind", TypeTLV, 0, 0x0302},
+	"delivery_failure_reason":     ParameterDefinition{"delivery_failure_reason", TypeTLV, 0, 0x0425},
+	"dest_addr_subunit":           ParameterDefinition{"dest_addr_subunit", TypeTLV, 0, 0x0005},
+	"dest_bearer_type":            ParameterDefinition{"dest_bearer_type", TypeTLV, 0, 0x0007},
+	"dest_network_type":           ParameterDefinition{"dest_network_type", TypeTLV, 0, 0x0006},
+	"dest_subaddress":             ParameterDefinition{"dest_subaddress", TypeTLV, 0, 0x0203},
+	"dest_telematics_id":          ParameterDefinition{"dest_telematics_id", TypeTLV, 0, 0x0008},
+	"destination_port":            ParameterDefinition{"destination_port", TypeTLV, 0, 0x020B},
+	"display_time":                ParameterDefinition{"display_time", TypeTLV, 0, 0x1201},
+	"dpf_result":                  ParameterDefinition{"dpf_result", TypeTLV, 0, 0x0420},
+	"its_reply_type":              ParameterDefinition{"its_reply_type", TypeTLV, 0, 0x1380},
+	"its_session_info":            ParameterDefinition{"its_session_info", TypeTLV, 0, 0x1383},
+	"language_indicator":          ParameterDefinition{"language_indicator", TypeTLV, 0, 0x020D},
+	"message_payload":             ParameterDefinition{"message_payload", TypeTLV, 0, 0x0424},
+	"message_state":               ParameterDefinition{"message_state", TypeTLV, 0, 0x0427},
+	"more_messages_to_send":       ParameterDefinition{"more_messages_to_send", TypeTLV, 0, 0x0426},
+	"ms_availability_status":      ParameterDefinition{"ms_availability_status", TypeTLV, 0, 0x0422},
+	"ms_msg_wait_facilities":      ParameterDefinition{"ms_msg_wait_facilities", TypeTLV, 0, 0x0030},
+	"ms_validity":                 ParameterDefinition{"ms_validity", TypeTLV, 0, 0x1204},
+	"network_error_code":          ParameterDefinition{"network_error_code", TypeTLV, 0, 0x0423},
+	"number_of_messages":          ParameterDefinition{"number_of_messages", TypeTLV, 0, 0x0304},
+	"payload_type":                ParameterDefinition{"payload_type", TypeTLV, 0, 0x0019},
+	"privacy_indicator":           ParameterDefinition{"privacy_indicator", TypeTLV, 0, 0x0201},
+	"qos_time_to_live":            ParameterDefinition{"qos_time_to_live", TypeTLV, 0, 0x0017},
+	"receipted_message_id":        ParameterDefinition{"receipted_message_id", TypeTLV, 0, 0x001E},
+	"sar_msg_ref_num":             ParameterDefinition{"sar_msg_ref_num", TypeTLV, 0, 0x020C},
+	"sar_segment_seqnum":          ParameterDefinition{"sar_segment_seqnum", TypeTLV, 0, 0x020F},
+	"sar_total_segments":          ParameterDefinition{"sar_total_segments", TypeTLV, 0, 0x020E},
+	"set_dpf":                     ParameterDefinition{"set_dpf", TypeTLV, 0, 0x0421},
+	"sms_signal":                  ParameterDefinition{"sms_signal", TypeTLV, 0, 0x1203},
+	"source_addr_subunit":         ParameterDefinition{"source_addr_subunit", TypeTLV, 0, 0x000D},
+	"source_bearer_type":          ParameterDefinition{"source_bearer_type", TypeTLV, 0, 0x000F},
+	"source_network_type":         ParameterDefinition{"source_network_type", TypeTLV, 0, 0x000E},
+	"source_port":                 ParameterDefinition{"source_port", TypeTLV, 0, 0x020A},
+	"source_subaddress":           ParameterDefinition{"source_subaddress", TypeTLV, 0, 0x0202},
+	"source_telematics_id":        ParameterDefinition{"source_telematics_id", TypeTLV, 0, 0x0010},
+	"user_message_reference":      ParameterDefinition{"user_message_reference", TypeTLV, 0, 0x0204},
+	"user_response_code":          ParameterDefinition{"user_response_code", TypeTLV, 0, 0x0205},
+	"ussd_service_op":             ParameterDefinition{"ussd_service_op", TypeTLV, 0, 0x0501},
 }
 
 // NewFLParameter creates a Parameter where the length is fixed by the type (e.g., TypeUint32).
@@ -64,12 +153,12 @@ func NewFLParameter(value interface{}) *Parameter {
 	return param
 }
 
-// NewASCIIParameter creates a Parameter where the value is a C-Octet String
+// NewCOctetStringParameter creates a Parameter where the value is a C-Octet String
 // (a null terminated string).  It is up to the caller to pass a correct value
 // if Decimal or Hex is required.  The passed string must contain only ASCII,
 // or this won't work the way you expect.
-func NewASCIIParameter(value string) *Parameter {
-	return &Parameter{TypeASCII, uint32(len(value)) + 1, value}
+func NewCOctetStringParameter(value string) *Parameter {
+	return &Parameter{TypeCOctetString, uint32(len(value)) + 1, value}
 }
 
 // NewTLVParameter creates a new Parameter with the provided tag.  The length
@@ -98,7 +187,7 @@ func NewTLVParameter(tag uint16, value interface{}) *Parameter {
 
 // Encode converts the 'param' object into a byte stream appropriate for
 // network transmission
-func (param Parameter) Encode() []byte {
+func (param *Parameter) Encode() []byte {
 	encoded := make([]byte, param.EncodeLength)
 
 	switch param.Type {
@@ -111,7 +200,7 @@ func (param Parameter) Encode() []byte {
 	case TypeUint32:
 		binary.BigEndian.PutUint32(encoded[0:4], param.Value.(uint32))
 
-	case TypeASCII:
+	case TypeCOctetString:
 		b := make([]byte, param.EncodeLength)
 		copy(b[0:param.EncodeLength], param.Value.(string))
 		return b
@@ -186,6 +275,47 @@ type PDU struct {
 	OptionalParameters  []*Parameter
 }
 
+// PDUDefinition describes a PDU.  It contains the set of mandatory Parameters and the
+// minimum length (including the header and the mandatory Parameters).
+type PDUDefinition struct {
+	Type                CommandIDType
+	MinLength           uint32
+	MandatoryParameters []string
+}
+
+var pduTypeDefinition = map[CommandIDType]PDUDefinition{
+	CommandGenericNack:         PDUDefinition{CommandGenericNack, 0, []string{}},
+	CommandBindReceiver:        PDUDefinition{CommandBindReceiver, 0, []string{}},
+	CommandBindReceiverResp:    PDUDefinition{CommandBindReceiverResp, 0, []string{}},
+	CommandBindTransmitter:     PDUDefinition{CommandBindTransmitter, 0, []string{}},
+	CommandBindTransmitterResp: PDUDefinition{CommandBindTransmitterResp, 0, []string{}},
+	CommandQuerySm:             PDUDefinition{CommandQuerySm, 0, []string{}},
+	CommandQuerySmResp:         PDUDefinition{CommandQuerySmResp, 0, []string{}},
+	CommandSubmitSm:            PDUDefinition{CommandSubmitSm, 0, []string{}},
+	CommandSubmitSmResp:        PDUDefinition{CommandSubmitSmResp, 0, []string{}},
+	CommandDeliverSm:           PDUDefinition{CommandDeliverSm, 0, []string{}},
+	CommandDeliverSmResp:       PDUDefinition{CommandDeliverSmResp, 0, []string{}},
+	CommandUnbind:              PDUDefinition{CommandUnbind, 0, []string{}},
+	CommandUnbindResp:          PDUDefinition{CommandUnbindResp, 0, []string{}},
+	CommandReplaceSm:           PDUDefinition{CommandReplaceSm, 0, []string{}},
+	CommandReplaceSmResp:       PDUDefinition{CommandReplaceSmResp, 0, []string{}},
+	CommandCancelSm:            PDUDefinition{CommandCancelSm, 0, []string{}},
+	CommandCancelSmResp:        PDUDefinition{CommandCancelSmResp, 0, []string{}},
+	CommandBindTransceiver:     PDUDefinition{CommandBindTransceiver, 0, []string{}},
+	CommandBindTransceiverResp: PDUDefinition{CommandBindTransceiverResp, 0, []string{}},
+	CommandOutbind:             PDUDefinition{CommandOutbind, 0, []string{}},
+	CommandEnquireLink:         PDUDefinition{CommandEnquireLink, 0, []string{}},
+	CommandEnquireLinkResp:     PDUDefinition{CommandEnquireLinkResp, 0, []string{}},
+	CommandSubmitMulti:         PDUDefinition{CommandSubmitMulti, 0, []string{}},
+	CommandSubmitMultiResp:     PDUDefinition{CommandSubmitMultiResp, 0, []string{}},
+	CommandAlertNotification:   PDUDefinition{CommandAlertNotification, 0, []string{}},
+	CommandDataSm: PDUDefinition{CommandDataSm, 26, []string{
+		"service_type", "source_addr_ton", "source_addr_npi", "source_addr", "dest_addr_ton",
+		"dest_addr_npi", "destination_addr", "esm_class", "registered_delivery", "data_coding",
+	}},
+	CommandDataSmResp: PDUDefinition{CommandDataSmResp, 0, []string{}},
+}
+
 // NewPDU creates a new PDU object
 func NewPDU(id CommandIDType, status uint32, sequence uint32, mandatoryParams []*Parameter, optionalParams []*Parameter) *PDU {
 	pdu := PDU{0, id, status, sequence, mandatoryParams, optionalParams}
@@ -207,7 +337,7 @@ func NewPDU(id CommandIDType, status uint32, sequence uint32, mandatoryParams []
 
 // ComputeLength computes the enocde length of the PDU and
 // returns it
-func (pdu PDU) ComputeLength() uint32 {
+func (pdu *PDU) ComputeLength() uint32 {
 	length := uint32(16) // header
 
 	for _, mparam := range pdu.MandatoryParameters {
@@ -222,7 +352,7 @@ func (pdu PDU) ComputeLength() uint32 {
 }
 
 // Encode converts the 'pdu' object into a byte stream appropriate for network transmission
-func (pdu PDU) Encode() ([]byte, error) {
+func (pdu *PDU) Encode() ([]byte, error) {
 	if pdu.CommandLength < 1 {
 		return []byte{}, nil
 	}
@@ -250,4 +380,125 @@ func (pdu PDU) Encode() ([]byte, error) {
 	}
 
 	return encoded, nil
+}
+
+// DecodePDU accepts a byte stream in network byte order, and attempts to convert
+// it to a PDU object
+func DecodePDU(stream []byte) (*PDU, error) {
+	if len(stream) < 16 {
+		return nil, fmt.Errorf("Incoming stream invalid length, is (%d) octets", len(stream))
+	}
+
+	pduLength := uint32(binary.BigEndian.Uint32(stream[0:4]))
+
+	if pduLength < 16 {
+		return nil, fmt.Errorf("Stream length field value (%d) is less than minimum (16)", pduLength)
+	}
+
+	if pduLength != uint32(len(stream)) {
+		return nil, fmt.Errorf("Stream length field value is (%d) but stream length is (%d)", pduLength, len(stream))
+	}
+
+	commandID := CommandIDType(uint32(binary.BigEndian.Uint32(stream[4:8])))
+
+	pduDef, exists := pduTypeDefinition[commandID]
+
+	if exists {
+		if pduDef.MinLength > pduLength {
+			return nil, fmt.Errorf("Stream length (%d) less than minimum (%d) for command type (%08x)", pduLength, pduDef.MinLength, commandID)
+		}
+	} else {
+		return nil, fmt.Errorf("Stream command-id (%08x) not known", commandID)
+	}
+
+	status := uint32(binary.BigEndian.Uint32(stream[8:12]))
+	sequenceNumber := uint32(binary.BigEndian.Uint32(stream[12:16]))
+
+	mandatoryPList := list.New()
+	optionalPList := list.New()
+
+	s := 16
+	smLength := uint8(0)
+	smLengthFound := false
+
+	for i := 0; i < len(pduDef.MandatoryParameters); i++ {
+		if s >= int(pduLength) {
+			break
+		}
+
+		paramName := pduDef.MandatoryParameters[i]
+		paramDef := parameterTypeDefinition[paramName]
+
+		switch paramDef.Type {
+		case TypeUint8:
+			mandatoryPList.PushBack(NewFLParameter(uint8(stream[s])))
+			s++
+
+			if paramName == "sm_length" {
+				smLength = uint8(stream[s])
+				smLengthFound = true
+			}
+
+		case TypeUint16:
+			mandatoryPList.PushBack(NewFLParameter(binary.BigEndian.Uint16(stream[s : s+2])))
+			s += 2
+
+		case TypeUint32:
+			mandatoryPList.PushBack(NewFLParameter(binary.BigEndian.Uint32(stream[s : s+4])))
+			s += 4
+
+		case TypeCOctetString:
+			nullOffset := bytes.IndexByte(stream[s:], 0)
+
+			if nullOffset < 1 {
+				return nil, fmt.Errorf("Require C-String-Octet type but failed to find null terminator")
+			}
+
+			bb := stream[s : s+nullOffset]
+			mandatoryPList.PushBack(NewCOctetStringParameter(string(bb)))
+			s += nullOffset + 1
+
+		case TypeOctetString:
+			if paramName == "short_message" {
+				if smLengthFound {
+					if smLength > 0 {
+						mandatoryPList.PushBack(&Parameter{TypeOctetString, uint32(smLength), stream[s : s+int(smLength)]})
+						s += int(smLength)
+					}
+				} else {
+					return nil, fmt.Errorf("Found short_message field but no sm_length field")
+				}
+			} else {
+				return nil, fmt.Errorf("Unknown definition for type (%s)", paramName)
+			}
+		}
+	}
+
+	// Optional Parameters are all TLV
+	for uint32(s) < pduLength {
+		tlvTag := binary.BigEndian.Uint16(stream[s : s+2])
+		tlvLen := binary.BigEndian.Uint16(stream[s+2 : s+4])
+		tlvVal := stream[s+4 : s+4+int(tlvLen)]
+
+		optionalPList.PushBack(NewTLVParameter(tlvTag, tlvVal))
+
+		s += 4 + int(tlvLen)
+	}
+
+	mp := make([]*Parameter, mandatoryPList.Len())
+	op := make([]*Parameter, optionalPList.Len())
+
+	i := 0
+	for e := mandatoryPList.Front(); e != nil; e = e.Next() {
+		mp[i] = e.Value.(*Parameter)
+		i++
+	}
+
+	i = 0
+	for e := optionalPList.Front(); e != nil; e = e.Next() {
+		mp[i] = e.Value.(*Parameter)
+		i++
+	}
+
+	return NewPDU(commandID, status, sequenceNumber, mp, op), nil
 }

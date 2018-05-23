@@ -17,17 +17,17 @@ func TestFixedLength(t *testing.T) {
 }
 
 func TestASCII(t *testing.T) {
-	runASCIITest(t, "NewASCIIParameter('')", "", 1, []byte{0x00})
-	runASCIITest(t, "NewASCIIParameter('this')", "this", 5, []byte{0x74, 0x68, 0x69, 0x73, 0x00})
+	runASCIITest(t, "NewCOctetStringParameter('')", "", 1, []byte{0x00})
+	runASCIITest(t, "NewCOctetStringParameter('this')", "this", 5, []byte{0x74, 0x68, 0x69, 0x73, 0x00})
 }
 
 func runASCIITest(t *testing.T, testname string, value string, expectedEncodeLength uint32, expectedEncoding []byte) {
-	param := NewASCIIParameter(value)
+	param := NewCOctetStringParameter(value)
 
 	if param == nil {
 		t.Errorf("Test %s:, received nil object", testname)
 	} else {
-		if param.Type != TypeASCII {
+		if param.Type != TypeCOctetString {
 			t.Errorf("Test %s: expected TypeASCII, but got type (%d)", testname, param.Type)
 		}
 
