@@ -105,6 +105,13 @@ func main() {
 		}
 
 		logger.Printf("Received PDU from peer, type is (%s)", pdu.CommandName())
+
+		switch pdu.CommandID {
+		case smpp.CommandSubmitSm:
+
+		default:
+			logger.Println("No response for this message type")
+		}
 	}
 
 	logger.Println("Done")
