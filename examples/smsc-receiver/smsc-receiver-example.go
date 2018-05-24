@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -96,6 +97,7 @@ func main() {
 
 	logger.Println("Entering listen loop")
 
+	msgID := uint32(1)
 	for {
 		pdu := recvPDU(conn, &readbuf, logger)
 
@@ -108,7 +110,12 @@ func main() {
 
 		switch pdu.CommandID {
 		case smpp.CommandSubmitSm:
+			responsePDU = smpp.NewPDU(smpp.CommandSubmitSmResp, 0, pdu.SequenceNumber, []*smpp.Parameter{
+				smpp.NewCOctetStringParameter(fmt.Sprintf("msg-%d", msgID)),
+			}, []*smpp.Parameter{})
+			msgID++
 
+			sendPDU(conn, responsePDU, logger)
 		default:
 			logger.Println("No response for this message type")
 		}

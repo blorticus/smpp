@@ -63,6 +63,7 @@ var parameterTypeDefinition = map[string]ParameterDefinition{
 	"esm_class":               ParameterDefinition{"esm_class", TypeUint8, 1, 0},
 	"interface_version":       ParameterDefinition{"interface_version", TypeUint8, 1, 0},
 	"password":                ParameterDefinition{"password", TypeCOctetString, 9, 0},
+	"message_id":              ParameterDefinition{"message_id", TypeCOctetString, 9, 0},
 	"priority_flag":           ParameterDefinition{"priority_flag", TypeUint8, 1, 0},
 	"protocol_id":             ParameterDefinition{"protocol_id", TypeUint8, 1, 0},
 	"registered_delivery":     ParameterDefinition{"registered_delivery", TypeUint8, 1, 0},
@@ -344,7 +345,9 @@ var pduTypeDefinition = map[CommandIDType]PDUDefinition{
 		"registered_delivery", "replace_if_present_flag", "data_coding",
 		"sm_default_msg_id", "sm_length", "short_message",
 	}},
-	CommandSubmitSmResp:        PDUDefinition{CommandSubmitSmResp, 0, []string{}},
+	CommandSubmitSmResp: PDUDefinition{CommandSubmitSmResp, 0, []string{
+		"message_id",
+	}},
 	CommandDeliverSm:           PDUDefinition{CommandDeliverSm, 0, []string{}},
 	CommandDeliverSmResp:       PDUDefinition{CommandDeliverSmResp, 0, []string{}},
 	CommandUnbind:              PDUDefinition{CommandUnbind, 0, []string{}},

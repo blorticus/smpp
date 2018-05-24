@@ -110,7 +110,11 @@ func main() {
 
 	sendPDU(conn, submitSmPDU, logger)
 
-	logger.Println("PDU sent")
+	logger.Println("PDU sent; waiting response")
+
+	_ = recvPDU(conn, &readbuf, logger)
+
+	logger.Println("Received PDU")
 
 	logger.Println("Closing peer connection")
 	logger.Println("Done")
