@@ -69,7 +69,7 @@ var parameterTypeDefinition = map[string]ParameterDefinition{
 	"replace_if_present_flag": ParameterDefinition{"replace_if_present_flag", TypeUint8, 1, 0},
 	"schedule_delivery_time":  ParameterDefinition{"schedule_delivery_time", TypeCOctetString, 21, 0},
 	"service_type":            ParameterDefinition{"service_type", TypeCOctetString, 9, 0},
-	"short_message":           ParameterDefinition{"short_message", TypeCOctetString, 254, 0},
+	"short_message":           ParameterDefinition{"short_message", TypeOctetString, 254, 0},
 	"sm_default_msg_id":       ParameterDefinition{"sm_default_msg_id", TypeUint8, 1, 0},
 	"sm_length":               ParameterDefinition{"sm_length", TypeUint8, 1, 0},
 	"source_addr_npi":         ParameterDefinition{"source_addr_npi", TypeUint8, 1, 0},
@@ -161,6 +161,12 @@ func NewCOctetStringParameter(value string) *Parameter {
 	return &Parameter{TypeCOctetString, uint32(len(value)) + 1, value}
 }
 
+// NewOctetStringFromString creates a Parameter of type OctetString (not null
+// terminated) from a string.
+func NewOctetStringFromString(value string) *Parameter {
+	return &Parameter{TypeOctetString, uint32(len(value)), []byte(value)}
+}
+
 // NewTLVParameter creates a new Parameter with the provided tag.  The length
 // is introspected from the value, which may be a uint8, a uint16, a uint32,
 // a string, or a []byte.
@@ -203,6 +209,11 @@ func (param *Parameter) Encode() []byte {
 	case TypeCOctetString:
 		b := make([]byte, param.EncodeLength)
 		copy(b[0:param.EncodeLength], param.Value.(string))
+		return b
+
+	case TypeOctetString:
+		b := make([]byte, param.EncodeLength)
+		copy(b[0:], param.Value.([]byte))
 		return b
 
 	case TypeTLV:
@@ -265,6 +276,36 @@ const (
 	CommandDataSmResp                        = 0x80000103
 )
 
+var pduCommandName = map[CommandIDType]string{
+	CommandGenericNack:         "generic-nack",
+	CommandBindReceiver:        "bind-receiver",
+	CommandBindReceiverResp:    "bind-receiver-resp",
+	CommandBindTransmitter:     "bind-transmitter",
+	CommandBindTransmitterResp: "bind-transmitter-resp",
+	CommandQuerySm:             "query-sm",
+	CommandQuerySmResp:         "query-sm-resp",
+	CommandSubmitSm:            "submit-sm",
+	CommandSubmitSmResp:        "submit-sm-resp",
+	CommandDeliverSm:           "deliver-sm",
+	CommandDeliverSmResp:       "deliver-sm-resp",
+	CommandUnbind:              "unbind",
+	CommandUnbindResp:          "unbind-resp",
+	CommandReplaceSm:           "replace-sm",
+	CommandReplaceSmResp:       "replace-sm-resp",
+	CommandCancelSm:            "cancel-sm",
+	CommandCancelSmResp:        "cancel-sm-resp",
+	CommandBindTransceiver:     "bind-tranceiver",
+	CommandBindTransceiverResp: "bind-tranceiver-resp",
+	CommandOutbind:             "outbind",
+	CommandEnquireLink:         "enquire-link",
+	CommandEnquireLinkResp:     "enquire-link-resp",
+	CommandSubmitMulti:         "submit-multi",
+	CommandSubmitMultiResp:     "submit-multi-resp",
+	CommandAlertNotification:   "alert-notification",
+	CommandDataSm:              "data-sm",
+	CommandDataSmResp:          "data-sm-resp",
+}
+
 // PDU is a PDU for
 type PDU struct {
 	CommandLength       uint32
@@ -294,9 +335,15 @@ var pduTypeDefinition = map[CommandIDType]PDUDefinition{
 	CommandBindTransmitterResp: PDUDefinition{CommandBindTransmitterResp, 0, []string{
 		"system_id",
 	}},
-	CommandQuerySm:             PDUDefinition{CommandQuerySm, 0, []string{}},
-	CommandQuerySmResp:         PDUDefinition{CommandQuerySmResp, 0, []string{}},
-	CommandSubmitSm:            PDUDefinition{CommandSubmitSm, 0, []string{}},
+	CommandQuerySm:     PDUDefinition{CommandQuerySm, 0, []string{}},
+	CommandQuerySmResp: PDUDefinition{CommandQuerySmResp, 0, []string{}},
+	CommandSubmitSm: PDUDefinition{CommandSubmitSm, 0, []string{
+		"service_type", "source_addr_ton", "source_addr_npi", "source_addr",
+		"dest_addr_ton", "dest_addr_npi", "destination_addr", "esm_class",
+		"protocol_id", "priority_flag", "schedule_delivery_time", "validity_period",
+		"registered_delivery", "replace_if_present_flag", "data_coding",
+		"sm_default_msg_id", "sm_length", "short_message",
+	}},
 	CommandSubmitSmResp:        PDUDefinition{CommandSubmitSmResp, 0, []string{}},
 	CommandDeliverSm:           PDUDefinition{CommandDeliverSm, 0, []string{}},
 	CommandDeliverSmResp:       PDUDefinition{CommandDeliverSmResp, 0, []string{}},
@@ -338,6 +385,11 @@ func NewPDU(id CommandIDType, status uint32, sequence uint32, mandatoryParams []
 	pdu.CommandLength = length
 
 	return &pdu
+}
+
+// CommandName returns the string name for this PDU's CommandID
+func (pdu *PDU) CommandName() string {
+	return pduCommandName[pdu.CommandID]
 }
 
 // ComputeLength computes the enocde length of the PDU and
@@ -437,12 +489,13 @@ func DecodePDU(stream []byte) (*PDU, error) {
 		switch paramDef.Type {
 		case TypeUint8:
 			mandatoryPList.PushBack(NewFLParameter(uint8(stream[s])))
-			s++
 
 			if paramName == "sm_length" {
 				smLength = uint8(stream[s])
 				smLengthFound = true
 			}
+
+			s++
 
 		case TypeUint16:
 			mandatoryPList.PushBack(NewFLParameter(binary.BigEndian.Uint16(stream[s : s+2])))
@@ -467,7 +520,8 @@ func DecodePDU(stream []byte) (*PDU, error) {
 			if paramName == "short_message" {
 				if smLengthFound {
 					if smLength > 0 {
-						mandatoryPList.PushBack(&Parameter{TypeOctetString, uint32(smLength), stream[s : s+int(smLength)]})
+						pp := &Parameter{TypeOctetString, uint32(smLength), stream[s : s+int(smLength)]}
+						mandatoryPList.PushBack(pp)
 						s += int(smLength)
 					}
 				} else {
@@ -501,7 +555,7 @@ func DecodePDU(stream []byte) (*PDU, error) {
 
 	i = 0
 	for e := optionalPList.Front(); e != nil; e = e.Next() {
-		mp[i] = e.Value.(*Parameter)
+		op[i] = e.Value.(*Parameter)
 		i++
 	}
 

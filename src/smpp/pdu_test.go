@@ -163,6 +163,20 @@ func TestCommandBindTransmitterRespPDU(t *testing.T) {
 	testPDUDecode(t, testname, encoded, 23, 0x80000002, 0x0, 0x01, 1, 0)
 }
 
+func compareByteArrays(t *testing.T, testname string, expected []byte, got []byte) {
+	if len(expected) != len(got) {
+		t.Errorf("%s: length of expected encoding [%d] != length of Encode() output [%d]", testname, len(expected), len(got))
+	} else {
+		for i := 0; i < len(expected); i++ {
+			if expected[i] != got[i] {
+				t.Errorf("%s: expected encoding and Encode() output begin differing at element (%d), expect (%02x), got (%02x)", testname, i, expected[i], got[i])
+				return
+			}
+		}
+	}
+
+}
+
 func TestCommandBindTransmitterPDU(t *testing.T) {
 	encoded := []byte{
 		0x0, 0x0, 0x0, 0x2c, //length
@@ -193,19 +207,85 @@ func TestCommandBindTransmitterPDU(t *testing.T) {
 	if err != nil {
 		t.Error("Command bind-transmitter-1: failed to encode PDU: ", err)
 	} else {
-		if len(encoded) != len(btEncode) {
-			t.Errorf("Command bind-transmitter-1: length of encoded [%d] != length of Encode() output [%d]", len(encoded), len(btEncode))
-		} else {
-			for i := 0; i < len(encoded); i++ {
-				if encoded[i] != btEncode[i] {
-					t.Errorf("Command bind-transmitter-1: encoded and Encode() output begin differing at byte (%d), expect (%02x), got (%02x)", i, encoded[i], btEncode[i])
-					break
-				}
-			}
-		}
+		compareByteArrays(t, "Command bind-transmitter-1", encoded, btEncode)
 	}
 
 	testPDUDecode(t, "Command bind-transmitter-1", encoded, 44, 0x02, 0x0, 0x01, 7, 0)
+}
+
+func TestCommandSubmitSmPDU(t *testing.T) {
+	testname := "Command submit-sm-1"
+
+	encoded := []byte{
+		0x00, 0x00, 0x00, 0xe1, // length
+		0x00, 0x00, 0x00, 0x04, // command ID
+		0x00, 0x00, 0x00, 0x00, // status
+		0x00, 0x00, 0x00, 0x5e, // sequence number
+		0x00,                                                 // service_type
+		0x00,                                                 // source_addr_ton
+		0x01,                                                 // source_addr_npi
+		0x32, 0x38, 0x38, 0x30, 0x39, 0x30, 0x39, 0x30, 0x00, // source_addr
+		0x01,                                                                   // dest_addr_ton
+		0x01,                                                                   // dest_addr_npi
+		0x31, 0x33, 0x31, 0x33, 0x39, 0x35, 0x39, 0x31, 0x34, 0x36, 0x33, 0x00, // destination_addr
+		0x00,                                                                                                 // esm_class
+		0x00,                                                                                                 // protocol_id
+		0x00,                                                                                                 // priority_level
+		0x00,                                                                                                 // schedule_delivery_time
+		0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x35, 0x30, 0x30, 0x30, 0x30, 0x30, 0x52, 0x00, // validity_time
+		0x00, // registered_delivery
+		0x00, // replace_if_present_flag
+		0xf0, // data_coding
+		0x00, // sm_default_msg_id
+		0x8d, // sm_length
+		// short_message...
+		0x54, 0x68, 0x69, 0x73, 0x20, 0x69, 0x73, 0x20, 0x61, 0x20, 0x74, 0x65, 0x73, 0x74, 0x20, 0x73, 0x68, 0x6f, 0x72, 0x74,
+		0x20, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x2c, 0x20, 0x74, 0x68, 0x6f, 0x75, 0x67, 0x68, 0x20, 0x69, 0x74, 0x20,
+		0x69, 0x73, 0x20, 0x73, 0x6f, 0x6d, 0x65, 0x77, 0x68, 0x61, 0x74, 0x20, 0x6c, 0x6f, 0x6e, 0x67, 0x65, 0x72, 0x20, 0x74,
+		0x68, 0x61, 0x6e, 0x20, 0x73, 0x68, 0x6f, 0x72, 0x74, 0x2c, 0x20, 0x62, 0x65, 0x69, 0x6e, 0x67, 0x20, 0x3e, 0x20, 0x35,
+		0x30, 0x20, 0x63, 0x68, 0x61, 0x72, 0x61, 0x63, 0x74, 0x65, 0x72, 0x73, 0x21, 0x20, 0x44, 0x6f, 0x6e, 0x27, 0x74, 0x20,
+		0x67, 0x65, 0x74, 0x20, 0x65, 0x78, 0x63, 0x69, 0x74, 0x65, 0x64, 0x20, 0x3a, 0x40, 0x20, 0x3a, 0x23, 0x20, 0x3a, 0x24,
+		0x20, 0x3a, 0x25, 0x20, 0x3a, 0x5e, 0x29, 0x20, 0x65, 0x6d, 0x6f, 0x6a, 0x69, 0x20, 0x6c, 0x69, 0x6b, 0x65, 0x2e, 0x2e,
+		0x2e,
+		0x02, 0x0c, 0x00, 0x02, 0x00, 0x05, // opt param: sar_msg_ref_num
+		0x02, 0x0e, 0x00, 0x01, 0x02, // opt param: sar_total_segments
+		0x02, 0x0f, 0x00, 0x01, 0x01, // opt param: sar_seg_seqnum1
+	}
+
+	submitSmPDU := NewPDU(CommandSubmitSm, 0, 0x5e, []*Parameter{
+		NewFLParameter(uint8(0)),
+		NewFLParameter(uint8(0)),
+		NewFLParameter(uint8(1)),
+		NewCOctetStringParameter("28809090"),
+		NewFLParameter(uint8(1)),
+		NewFLParameter(uint8(1)),
+		NewCOctetStringParameter("13139591463"),
+		NewFLParameter(uint8(0)),
+		NewFLParameter(uint8(0)),
+		NewFLParameter(uint8(0)),
+		NewFLParameter(uint8(0)),
+		NewCOctetStringParameter("000000000500000R"),
+		NewFLParameter(uint8(0)),
+		NewFLParameter(uint8(0)),
+		NewFLParameter(uint8(0xf0)),
+		NewFLParameter(uint8(0)),
+		NewFLParameter(uint8(0x8d)),
+		NewOctetStringFromString("This is a test short message, though it is somewhat longer than short, being > 50 characters! Don't get excited :@ :# :$ :% :^) emoji like..."),
+	}, []*Parameter{
+		NewTLVParameter(0x020c, uint16(5)),
+		NewTLVParameter(0x020e, uint8(2)),
+		NewTLVParameter(0x020f, uint8(1)),
+	})
+
+	pduEncode, err := submitSmPDU.Encode()
+
+	if err != nil {
+		t.Error(testname, ": error on Encode of submitSmPDU: ", err)
+	} else {
+		compareByteArrays(t, testname, encoded, pduEncode)
+	}
+
+	testPDUDecode(t, testname, pduEncode, 0xe1, CommandSubmitSm, 0, 0x5e, 18, 3)
 }
 
 func testPDUDecode(t *testing.T, testname string, encodedPDU []byte, expectedCommandLength uint32, expectedCommandID CommandIDType, expectedStatus uint32, expectedSequence uint32, expectedMParamCount uint32, expectedOParamCount uint32) {

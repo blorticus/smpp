@@ -1,12 +1,49 @@
 package main
 
 import (
+	"io"
 	"log"
 	"net"
 	"os"
 	"path/filepath"
 	"smpp"
 )
+
+func sendPDU(conn net.Conn, pdu *smpp.PDU, logger *log.Logger) {
+	encoded, err := pdu.Encode()
+
+	if err != nil {
+		logger.Fatalln("Failed to encode PDU: ", err)
+	}
+
+	_, err = conn.Write(encoded)
+
+	if err != nil {
+		logger.Fatalln("Failed to write: ", err)
+	}
+}
+
+func recvPDU(conn net.Conn, buf *[]byte, logger *log.Logger) *smpp.PDU {
+	octets, err := conn.Read(*buf)
+
+	if err != nil {
+		if err == io.EOF {
+			return nil
+		}
+
+		logger.Fatalln("Failed on read: ", err)
+	}
+
+	logger.Printf("Read (%d) octets", octets)
+
+	pdu, err := smpp.DecodePDU(*buf)
+
+	if err != nil {
+		logger.Fatalln("Failed to encode incoming PDU: ", err)
+	}
+
+	return pdu
+}
 
 func main() {
 	bindIP := "127.0.0.1"
@@ -37,23 +74,15 @@ func main() {
 
 	readbuf := make([]byte, 4096)
 
-	bytesRead, err := conn.Read(readbuf)
+	logger.Println("Waiting for bind-transmitter from peer")
 
-	if err != nil {
-		logger.Fatalln("Failed to Read from incoming socket: ", err)
-	}
-
-	logger.Printf("Received (%d) bytes from peer", bytesRead)
-
-	receivedPDU, err := smpp.DecodePDU(readbuf)
-
-	if err != nil {
-		logger.Fatalln("Failed to decode incoming PDU: ", err)
-	}
+	receivedPDU := recvPDU(conn, &readbuf, logger)
 
 	if receivedPDU.CommandID != smpp.CommandBindTransmitter {
 		logger.Fatalf("Expected bind_transmitter from peer, but received (%08x)\n", smpp.CommandBindTransmitter)
 	}
+
+	logger.Println("bind-transmitter received; sending bind-transmitter-resp")
 
 	seqNum := receivedPDU.SequenceNumber
 
@@ -61,18 +90,22 @@ func main() {
 		smpp.NewCOctetStringParameter("smsc01"), // system_id
 	}, []*smpp.Parameter{})
 
-	encoded, err := responsePDU.Encode()
-
-	if err != nil {
-		logger.Fatalln("Failed to encode transmitter_resp PDU: ", err)
-	}
-
-	_, err = conn.Write(encoded)
-
-	if err != nil {
-		logger.Fatalln("Failed to write encoded transmitter_resp PDU: ", err)
-	}
+	sendPDU(conn, responsePDU, logger)
 
 	logger.Println("Responded with transmitter_resp")
+
+	logger.Println("Entering listen loop")
+
+	for {
+		pdu := recvPDU(conn, &readbuf, logger)
+
+		if pdu == nil {
+			logger.Println("Peer closed connection")
+			break
+		}
+
+		logger.Printf("Received PDU from peer, type is (%s)", pdu.CommandName())
+	}
+
 	logger.Println("Done")
 }
