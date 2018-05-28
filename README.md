@@ -1,6 +1,6 @@
 ## Overview
 
-This is a golang library for (SMPP v3.4)[http://opensmpp.org/specs/SMPP_v3_4_Issue1_2.pdf] message generation and parsing.
+This is a golang library for [SMPP v3.4](http://opensmpp.org/specs/SMPP_v3_4_Issue1_2.pdf) message generation and parsing.
 
 ## Usage
 
