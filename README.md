@@ -9,10 +9,10 @@ The library is in the package **smpp**.  There are two basic object types: **smp
 An SMPP v3.4 PDU has a header and one or more **Parameter**s.  Parameters are Mandatory or Optional.  Mandatory Parameters are at fixed offsets in a PDU, based on the PDU type, and are either of fixed size, or are null terminated (or it is a _short_message_, which is treated specially, as described below).  Optional Parameters are TLV (Tag/Length/Value) encoded.  There are different constructors for different **Paramter** types:
 
 ```golang
-p := NewFLParameter(value interface{})
-p := NewCOctetStringParameter(value string)
-p := NewOctetStringFromString(value string)
-p := NewTLVParameter(tag uint16, value interface{})
+p := smpp.NewFLParameter(value interface{})
+p := smpp.NewCOctetStringParameter(value string)
+p := smpp.NewOctetStringFromString(value string)
+p := smpp.NewTLVParameter(tag uint16, value interface{})
 ```
 
 `NewFLParameter` is for fixed length parameters, and the length and encoding is inferred from the `value` type, which may be `uint8`, `uint16` or `uint32`.  `NetCOctetStringParameter` is for C-Octet-Strings (which are null--that is, byte with a value of 0--terminated).  `OctetStringFromString` produces an Octet-String (which is not null terminated) from a string.  The only Parameter type that uses this is _short_messsage_, which must be preceded by an _sm_length_ Parameter that provides the _short_message_ length.  `NewTLVParameter` generates an Optional Parameter.  The Length of the TLV is inferred from type of `value`, which may be `uint8`, `uint16`, `uint32`, `string` or `[]byte`.
@@ -22,7 +22,13 @@ None of the **Parameter** constructors return an error, so that they can be used
 To create a **PDU**:
 
 ```golang
-pdu := NewPDU(id CommandIDType, status uint32, sequence uint32, mandatoryParams []*Parameter, optionalParams []*Parameter)
+pdu := smpp.NewPDU(id smpp.CommandIDType, status uint32, sequence uint32, mandatoryParams []*smpp.Parameter, optionalParams []*smpp.Parameter)
+```
+
+To decode an incoming byte stream (which must be a complete PDU):
+
+```golang
+pdu, err := smpp.DecodePDU(stream []byte)
 ```
 
 ## Examples
