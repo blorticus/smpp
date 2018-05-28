@@ -367,9 +367,13 @@ var pduTypeDefinition = map[CommandIDType]PDUDefinition{
 	CommandDeliverSmResp: PDUDefinition{CommandDeliverSmResp, 0, []string{
 		"message_id",
 	}},
-	CommandUnbind:        PDUDefinition{CommandUnbind, 0, []string{}},
-	CommandUnbindResp:    PDUDefinition{CommandUnbindResp, 0, []string{}},
-	CommandReplaceSm:     PDUDefinition{CommandReplaceSm, 0, []string{}},
+	CommandUnbind:     PDUDefinition{CommandUnbind, 0, []string{}},
+	CommandUnbindResp: PDUDefinition{CommandUnbindResp, 0, []string{}},
+	CommandReplaceSm: PDUDefinition{CommandReplaceSm, 0, []string{
+		"message_id", "source_addr_ton", "source_addr_npi", "source_addr",
+		"schedule_delivery_time", "validity_period", "registered_delivery",
+		"registered_delivery", "sm_length", "short_message",
+	}},
 	CommandReplaceSmResp: PDUDefinition{CommandReplaceSmResp, 0, []string{}},
 	CommandCancelSm: PDUDefinition{CommandCancelSm, 0, []string{
 		"service_type", "message_id", "source_addr_ton", "source_addr_npi", "source_addr",
@@ -386,11 +390,14 @@ var pduTypeDefinition = map[CommandIDType]PDUDefinition{
 	CommandOutbind: PDUDefinition{CommandOutbind, 0, []string{
 		"system_id", "password",
 	}},
-	CommandEnquireLink:       PDUDefinition{CommandEnquireLink, 0, []string{}},
-	CommandEnquireLinkResp:   PDUDefinition{CommandEnquireLinkResp, 0, []string{}},
-	CommandSubmitMulti:       PDUDefinition{CommandSubmitMulti, 0, []string{}},
-	CommandSubmitMultiResp:   PDUDefinition{CommandSubmitMultiResp, 0, []string{}},
-	CommandAlertNotification: PDUDefinition{CommandAlertNotification, 0, []string{}},
+	CommandEnquireLink:     PDUDefinition{CommandEnquireLink, 0, []string{}},
+	CommandEnquireLinkResp: PDUDefinition{CommandEnquireLinkResp, 0, []string{}},
+	CommandSubmitMulti:     PDUDefinition{CommandSubmitMulti, 0, []string{}},
+	CommandSubmitMultiResp: PDUDefinition{CommandSubmitMultiResp, 0, []string{}},
+	CommandAlertNotification: PDUDefinition{CommandAlertNotification, 0, []string{
+		"source_addr_ton", "source_addr_npi", "source_addr", "esme_addr_ton",
+		"esme_addr_npi", "esme_addr",
+	}},
 	CommandDataSm: PDUDefinition{CommandDataSm, 26, []string{
 		"service_type", "source_addr_ton", "source_addr_npi", "source_addr", "dest_addr_ton",
 		"dest_addr_npi", "destination_addr", "esm_class", "registered_delivery", "data_coding",
