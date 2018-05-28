@@ -1,3 +1,5 @@
+# Golang SMPP v3.4 Library
+
 ## Overview
 
 This is a golang library for [SMPP v3.4](http://opensmpp.org/specs/SMPP_v3_4_Issue1_2.pdf) message generation and parsing.
@@ -37,4 +39,4 @@ There are examples in the *examples/* directory.
 
 ## Status
 
-In **pdu.go**, the global variable `pduTypeDefinition` maps the Mandatory Parameters for each PDU type.  It is incomplete; not all types are currently defined.  Those that are do have a limited set of unit tests.  If missing types are defined, unit tests should be created for those types.
+In **pdu.go**, the global variable `pduTypeDefinition` maps the Mandatory Parameters for each PDU type.  Particularly, neither SubmitMulti nor SubmitMultiResp are implemented, and messages of this type will neither encode nor decode properly.  It requires a bit of extra logic in the code to support these.  Additionally, there are no unit tests for a subset of the message types, so their encode/decode methods are not thoroughly tested.

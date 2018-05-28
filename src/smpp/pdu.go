@@ -326,9 +326,14 @@ type PDUDefinition struct {
 }
 
 var pduTypeDefinition = map[CommandIDType]PDUDefinition{
-	CommandGenericNack:      PDUDefinition{CommandGenericNack, 0, []string{}},
-	CommandBindReceiver:     PDUDefinition{CommandBindReceiver, 0, []string{}},
-	CommandBindReceiverResp: PDUDefinition{CommandBindReceiverResp, 0, []string{}},
+	CommandGenericNack: PDUDefinition{CommandGenericNack, 0, []string{}},
+	CommandBindReceiver: PDUDefinition{CommandBindReceiver, 0, []string{
+		"system_id", "password", "system_type", "interface_version", "addr_ton",
+		"addr_npi", "address_range",
+	}},
+	CommandBindReceiverResp: PDUDefinition{CommandBindReceiverResp, 0, []string{
+		"system_id",
+	}},
 	CommandBindTransmitter: PDUDefinition{CommandBindTransmitter, 0, []string{
 		"system_id", "password", "system_type", "interface_version", "addr_ton",
 		"addr_npi", "address_range",
@@ -336,8 +341,12 @@ var pduTypeDefinition = map[CommandIDType]PDUDefinition{
 	CommandBindTransmitterResp: PDUDefinition{CommandBindTransmitterResp, 0, []string{
 		"system_id",
 	}},
-	CommandQuerySm:     PDUDefinition{CommandQuerySm, 0, []string{}},
-	CommandQuerySmResp: PDUDefinition{CommandQuerySmResp, 0, []string{}},
+	CommandQuerySm: PDUDefinition{CommandQuerySm, 0, []string{
+		"message_id", "source_addr_ton", "source_addr_npi", "source_addr",
+	}},
+	CommandQuerySmResp: PDUDefinition{CommandQuerySmResp, 0, []string{
+		"message_id", "final_date", "message_state", "error_code",
+	}},
 	CommandSubmitSm: PDUDefinition{CommandSubmitSm, 0, []string{
 		"service_type", "source_addr_ton", "source_addr_npi", "source_addr",
 		"dest_addr_ton", "dest_addr_npi", "destination_addr", "esm_class",
@@ -348,22 +357,40 @@ var pduTypeDefinition = map[CommandIDType]PDUDefinition{
 	CommandSubmitSmResp: PDUDefinition{CommandSubmitSmResp, 0, []string{
 		"message_id",
 	}},
-	CommandDeliverSm:           PDUDefinition{CommandDeliverSm, 0, []string{}},
-	CommandDeliverSmResp:       PDUDefinition{CommandDeliverSmResp, 0, []string{}},
-	CommandUnbind:              PDUDefinition{CommandUnbind, 0, []string{}},
-	CommandUnbindResp:          PDUDefinition{CommandUnbindResp, 0, []string{}},
-	CommandReplaceSm:           PDUDefinition{CommandReplaceSm, 0, []string{}},
-	CommandReplaceSmResp:       PDUDefinition{CommandReplaceSmResp, 0, []string{}},
-	CommandCancelSm:            PDUDefinition{CommandCancelSm, 0, []string{}},
-	CommandCancelSmResp:        PDUDefinition{CommandCancelSmResp, 0, []string{}},
-	CommandBindTransceiver:     PDUDefinition{CommandBindTransceiver, 0, []string{}},
-	CommandBindTransceiverResp: PDUDefinition{CommandBindTransceiverResp, 0, []string{}},
-	CommandOutbind:             PDUDefinition{CommandOutbind, 0, []string{}},
-	CommandEnquireLink:         PDUDefinition{CommandEnquireLink, 0, []string{}},
-	CommandEnquireLinkResp:     PDUDefinition{CommandEnquireLinkResp, 0, []string{}},
-	CommandSubmitMulti:         PDUDefinition{CommandSubmitMulti, 0, []string{}},
-	CommandSubmitMultiResp:     PDUDefinition{CommandSubmitMultiResp, 0, []string{}},
-	CommandAlertNotification:   PDUDefinition{CommandAlertNotification, 0, []string{}},
+	CommandDeliverSm: PDUDefinition{CommandDeliverSm, 0, []string{
+		"service_type", "source_addr_ton", "source_addr_npi", "source_addr",
+		"dest_addr_ton", "dest_addr_npi", "destination_addr", "esm_class",
+		"protocol_id", "priority_flag", "schedule_delivery_time", "validity_period",
+		"registered_delivery", "replace_if_present_flag", "data_coding",
+		"sm_default_msg_id", "sm_length", "short_message",
+	}},
+	CommandDeliverSmResp: PDUDefinition{CommandDeliverSmResp, 0, []string{
+		"message_id",
+	}},
+	CommandUnbind:        PDUDefinition{CommandUnbind, 0, []string{}},
+	CommandUnbindResp:    PDUDefinition{CommandUnbindResp, 0, []string{}},
+	CommandReplaceSm:     PDUDefinition{CommandReplaceSm, 0, []string{}},
+	CommandReplaceSmResp: PDUDefinition{CommandReplaceSmResp, 0, []string{}},
+	CommandCancelSm: PDUDefinition{CommandCancelSm, 0, []string{
+		"service_type", "message_id", "source_addr_ton", "source_addr_npi", "source_addr",
+		"dest_addr_ton", "dest_addr_npi", "destination_addr",
+	}},
+	CommandCancelSmResp: PDUDefinition{CommandCancelSmResp, 0, []string{}},
+	CommandBindTransceiver: PDUDefinition{CommandBindTransceiver, 0, []string{
+		"system_id", "password", "system_type", "interface_version", "addr_ton",
+		"addr_npi", "address_range",
+	}},
+	CommandBindTransceiverResp: PDUDefinition{CommandBindTransceiverResp, 0, []string{
+		"system_id",
+	}},
+	CommandOutbind: PDUDefinition{CommandOutbind, 0, []string{
+		"system_id", "password",
+	}},
+	CommandEnquireLink:       PDUDefinition{CommandEnquireLink, 0, []string{}},
+	CommandEnquireLinkResp:   PDUDefinition{CommandEnquireLinkResp, 0, []string{}},
+	CommandSubmitMulti:       PDUDefinition{CommandSubmitMulti, 0, []string{}},
+	CommandSubmitMultiResp:   PDUDefinition{CommandSubmitMultiResp, 0, []string{}},
+	CommandAlertNotification: PDUDefinition{CommandAlertNotification, 0, []string{}},
 	CommandDataSm: PDUDefinition{CommandDataSm, 26, []string{
 		"service_type", "source_addr_ton", "source_addr_npi", "source_addr", "dest_addr_ton",
 		"dest_addr_npi", "destination_addr", "esm_class", "registered_delivery", "data_coding",
