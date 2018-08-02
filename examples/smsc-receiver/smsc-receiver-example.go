@@ -1,13 +1,16 @@
 package main
 
 import (
+    "flag"
 	"fmt"
 	"io"
 	"log"
 	"net"
 	"os"
+    "path"
 	"path/filepath"
 	"smpp"
+    "strconv"
 )
 
 func sendPDU(conn net.Conn, pdu *smpp.PDU, logger *log.Logger) {
@@ -47,9 +50,17 @@ func recvPDU(conn net.Conn, buf *[]byte, logger *log.Logger) *smpp.PDU {
 }
 
 func main() {
-	bindIP := "127.0.0.1"
-	bindPort := "2775"
-	bindAddr := bindIP + ":" + bindPort
+    var bindIP string
+    var bindPort int
+
+    flag.StringVar(&bindIP, "addr", "127.0.0.1", "Listener IP")
+    flag.IntVar(&bindPort, "port", 2775, "Listener TCP port")
+
+    os.Args[0] = path.Base(os.Args[0])
+
+    flag.Parse()
+
+	bindAddr := bindIP + ":" + strconv.Itoa(bindPort)
 
 	logger := log.New(os.Stderr, filepath.Base(os.Args[0])+": ", 0)
 
