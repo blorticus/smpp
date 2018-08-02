@@ -1,11 +1,14 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"net"
 	"os"
+	"path"
 	"path/filepath"
 	"smpp"
+	"strconv"
 )
 
 func sendPDU(conn net.Conn, pdu *smpp.PDU, logger *log.Logger) {
@@ -39,11 +42,23 @@ func recvPDU(conn net.Conn, buf *[]byte, logger *log.Logger) *smpp.PDU {
 }
 
 func main() {
-	peerIP := "127.0.0.1"
-	peerPort := "2775"
-	peerAddr := peerIP + ":" + peerPort
-
 	logger := log.New(os.Stderr, filepath.Base(os.Args[0])+": ", 0)
+
+	var peerIP string
+	var peerPort int
+
+	flag.StringVar(&peerIP, "addr", "127.0.0.1", "IP address of peer")
+	flag.IntVar(&peerPort, "port", 2775, "Listening TCP port for peer")
+
+	os.Args[0] = path.Base(os.Args[0])
+
+	flag.Parse()
+
+	if peerPort < 1 || peerPort > 65535 {
+		logger.Fatalf("Port must be between 1 and 65535, inclusive")
+	}
+
+	peerAddr := peerIP + ":" + strconv.Itoa(peerPort)
 
 	logger.Println("Starting client connection to [", peerAddr, "]")
 
