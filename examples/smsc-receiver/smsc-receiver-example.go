@@ -91,7 +91,7 @@ func main() {
 	receivedPDU := recvPDU(conn, &readbuf, logger)
 
 	if receivedPDU.CommandID != smpp.CommandBindTransmitter {
-		logger.Fatalf("Expected bind_transmitter from peer, but received (%08x)\n", smpp.CommandBindTransmitter)
+		logger.Fatalf("Expected bind_transmitter from peer, but received (%08x)\n", receivedPDU.CommandID)
 	}
 
 	logger.Println("bind-transmitter received; sending bind-transmitter-resp")
