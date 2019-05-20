@@ -62,12 +62,12 @@ type Peer struct {
 func (peer *Peer) Start(conn net.Conn, events chan<- (*EventMessage), cntrl <-chan (*PeerControlMessage)) {
 	defer conn.Close()
 
-	//var bytesRead int
+	var bytesRead int
 	var err error
 	readBuf := make([]byte, 65515)
 
 	for {
-		_, err = conn.Read(readBuf)
+		bytesRead, err = conn.Read(readBuf)
 
 		if err != nil {
 			if err == io.EOF {
