@@ -405,6 +405,16 @@ var pduTypeDefinition = map[CommandIDType]PDUDefinition{
 	CommandDataSmResp: PDUDefinition{CommandDataSmResp, 0, []string{}},
 }
 
+// LengthOfNextPDU reads a stream that should contain at least a fragment of an SMPP PDU.
+// If the length of stream is less than 4, then return 0 (meaning length is not yet known)
+func LengthOfNextPDU(stream []byte) uint32 {
+	if len(stream) < 4 {
+		return uint32(0)
+	}
+
+	return binary.BigEndian.Uint32(stream[0:4])
+}
+
 // NewPDU creates a new PDU object
 func NewPDU(id CommandIDType, status uint32, sequence uint32, mandatoryParams []*Parameter, optionalParams []*Parameter) *PDU {
 	pdu := PDU{0, id, status, sequence, mandatoryParams, optionalParams}
