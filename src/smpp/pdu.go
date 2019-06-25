@@ -246,6 +246,7 @@ func (param *Parameter) Encode() []byte {
 // CommandIDType is an enumeration of defined  Command IDs
 type CommandIDType uint32
 
+// These correspond to SMPP Message Type
 const (
 	_                          CommandIDType = iota
 	CommandGenericNack                       = 0x80000000
