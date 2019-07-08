@@ -15,3 +15,5 @@ pkg/darwin_amd64/smpp.a
 
 foo
 foo.*
+bin/gocode
+bin/gocode-gomod
