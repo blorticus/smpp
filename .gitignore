@@ -17,3 +17,4 @@ foo
 foo.*
 bin/gocode
 bin/gocode-gomod
+.vscode/launch.json
