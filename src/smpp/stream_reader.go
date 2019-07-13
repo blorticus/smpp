@@ -53,3 +53,20 @@ func (reader *NetworkStreamReader) Read() ([]*PDU, error) {
 
 	return extractedPDUs, nil
 }
+
+// ExtractNextPDUs repeatedly reads from the TCP stream until there is at least one PDU.
+// It returns the set of extracted PDUs, and like Read(), stores any remaining data for
+// subsequent calls
+func (reader *NetworkStreamReader) ExtractNextPDUs() ([]*PDU, error) {
+	for {
+		pdus, err := reader.Read()
+
+		if err != nil {
+			return nil, err
+		}
+
+		if len(pdus) > 0 {
+			return pdus, nil
+		}
+	}
+}
