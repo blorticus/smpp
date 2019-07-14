@@ -308,6 +308,10 @@ var pduCommandName = map[CommandIDType]string{
 	CommandDataSmResp:          "data-sm-resp",
 }
 
+func CommandName(commandID CommandIDType) string {
+    return pduCommandName[commandID]
+}
+
 // PDU is a PDU for
 type PDU struct {
 	CommandLength       uint32
