@@ -342,9 +342,12 @@ func CommandName(commandID CommandIDType) string {
 	return pduCommandName[commandID]
 }
 
-// CommandIDFromString takes a command string name and returns the corresponding CommandIDType
-func CommandIDFromString(commandName string) CommandIDType {
-	return commandNameToCommandID[commandName]
+// CommandIDFromString takes a command string name and returns the corresponding CommandIDType.
+// The boolean is set to true if the commandName is understand; otherwise it is false, and the
+// returned value for CommandIDType is undefined
+func CommandIDFromString(commandName string) (CommandIDType, bool) {
+	commandID, ok := commandNameToCommandID[commandName]
+	return commandID, ok
 }
 
 // PDU is a PDU for
