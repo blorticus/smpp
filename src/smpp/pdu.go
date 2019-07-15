@@ -308,8 +308,43 @@ var pduCommandName = map[CommandIDType]string{
 	CommandDataSmResp:          "data-sm-resp",
 }
 
+var commandNameToCommandID = map[string]CommandIDType{
+	"bind-receiver":         CommandBindReceiver,
+	"bind-receiver-resp":    CommandBindReceiverResp,
+	"bind-transmitter":      CommandBindTransmitter,
+	"bind-transmitter-resp": CommandBindTransmitterResp,
+	"query-sm":              CommandQuerySm,
+	"query-sm-resp":         CommandQuerySmResp,
+	"submit-sm":             CommandSubmitSm,
+	"submit-sm-resp":        CommandSubmitSmResp,
+	"deliver-sm":            CommandDeliverSm,
+	"deliver-sm-resp":       CommandDeliverSmResp,
+	"unbind":                CommandUnbind,
+	"unbind-resp":           CommandUnbindResp,
+	"replace-sm":            CommandReplaceSm,
+	"replace-sm-resp":       CommandReplaceSmResp,
+	"cancel-sm":             CommandCancelSm,
+	"cancel-sm-resp":        CommandCancelSmResp,
+	"bind-tranceiver":       CommandBindTransceiver,
+	"bind-tranceiver-resp":  CommandBindTransceiverResp,
+	"outbind":               CommandOutbind,
+	"enquire-link":          CommandEnquireLink,
+	"enquire-link-resp":     CommandEnquireLinkResp,
+	"submit-multi":          CommandSubmitMulti,
+	"submit-multi-resp":     CommandSubmitMultiResp,
+	"alert-notification":    CommandAlertNotification,
+	"data-sm":               CommandDataSm,
+	"data-sm-resp":          CommandDataSmResp,
+}
+
+// CommandName returns the string representation for a CommandID
 func CommandName(commandID CommandIDType) string {
-    return pduCommandName[commandID]
+	return pduCommandName[commandID]
+}
+
+// CommandIDFromString takes a command string name and returns the corresponding CommandIDType
+func CommandIDFromString(commandName string) CommandIDType {
+	return commandNameToCommandID[commandName]
 }
 
 // PDU is a PDU for
