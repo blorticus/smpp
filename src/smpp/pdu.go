@@ -70,7 +70,7 @@ var parameterTypeDefinition = map[string]ParameterDefinition{
 	"replace_if_present_flag": ParameterDefinition{"replace_if_present_flag", TypeUint8, 1, 0},
 	"schedule_delivery_time":  ParameterDefinition{"schedule_delivery_time", TypeCOctetString, 21, 0},
 	"service_type":            ParameterDefinition{"service_type", TypeCOctetString, 9, 0},
-	"short_message":           ParameterDefinition{"short_message", TypeOctetString, 254, 0},
+	"short_message":           ParameterDefinition{"short_message", TypeCOctetString, 254, 0},
 	"sm_default_msg_id":       ParameterDefinition{"sm_default_msg_id", TypeUint8, 1, 0},
 	"sm_length":               ParameterDefinition{"sm_length", TypeUint8, 1, 0},
 	"source_addr_npi":         ParameterDefinition{"source_addr_npi", TypeUint8, 1, 0},
