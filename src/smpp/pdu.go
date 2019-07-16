@@ -482,6 +482,16 @@ func (pdu *PDU) CommandName() string {
 	return pduCommandName[pdu.CommandID]
 }
 
+// IsRequest returns true if the Command is in the request range (i.e., top-order bit is not set);
+// otherwise it returns false
+func (pdu *PDU) IsRequest() bool {
+	if uint32(pdu.CommandID)&0x80000000 == 0 {
+		return true
+	}
+
+	return false
+}
+
 // ComputeLength computes the enocde length of the PDU and
 // returns it
 func (pdu *PDU) ComputeLength() uint32 {
