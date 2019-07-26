@@ -52,8 +52,8 @@ type JSONMandatoryParameterMap struct {
 	ValidityPeriod       string `json:"validity_period"`
 }
 
-// JSONOptionalParameters describes the layout of the SMPP JSON file optional_parameters field
-type JSONOptionalParameters struct {
+// JSONOptionalParameterMap describes the layout of the SMPP JSON file optional_parameters field
+type JSONOptionalParameterMap struct {
 	SCInterfaceVersion       uint32 `yaml:"SC_interface_version"`
 	AdditionalStatusInfoText uint32 `yaml:"additional_status_info_text"`
 	AlertOnMessageDelivery   uint32 `yaml:"alert_on_message_delivery"`
@@ -107,7 +107,7 @@ type JSONMessage struct {
 	CommandStatus       uint32                    `json:"command_status"`
 	EncodedLength       uint32                    `json:"encoded_length"`
 	MandatoryParameters JSONMandatoryParameterMap `json:"mandatory_parameters"`
-	OptionalParameters  JSONOptionalParameters    `json:"optional_parameters"`
+	OptionalParameters  JSONOptionalParameterMap  `json:"optional_parameters"`
 }
 
 // JSONDocument describes the SMPP JSON document structure
@@ -126,6 +126,38 @@ func UnmarshallJSON(data []byte) (*JSONDocument, error) {
 }
 
 // ConvertJSONToPDUs creates PDUs from well-formed JSONMessage objects
-func ConvertJSONToPDUs([]*JSONMessage) ([]*PDU, error) {
+func ConvertJSONToPDUs(jsonMessages []*JSONMessage) ([]*PDU, error) {
+	pdus := make([]*PDU, len(jsonMessages))
+
+	for i, nextJSONMessage := range jsonMessages {
+		mandatoryParameterList, err := produceParametersFromJSONMandatoryParameters(&nextJSONMessage.MandatoryParameters)
+
+		if err != nil {
+			return nil, err
+		}
+
+		optionalParameterList, err := produceParametersFromJSONMandatoryParameters(&nextJSONMessage.MandatoryParameters)
+
+		if err != nil {
+			return nil, err
+		}
+
+		pdus[i] = NewPDU(
+			CommandIDType(nextJSONMessage.CommandID),
+			nextJSONMessage.CommandStatus,
+			nextJSONMessage.SequenceNumber,
+			mandatoryParameterList,
+			optionalParameterList,
+		)
+	}
+
+	return pdus, nil
+}
+
+func produceParametersFromJSONMandatoryParameters(json *JSONMandatoryParameterMap) ([]*Parameter, error) {
+	return nil, nil
+}
+
+func produceParametersFromJSONOptionalParameters(json *JSONOptionalParameterMap) ([]*Parameter, error) {
 	return nil, nil
 }
