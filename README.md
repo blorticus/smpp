@@ -40,7 +40,3 @@ There are examples in the *examples/* directory.
 ## Status
 
 In **pdu.go**, the global variable `pduTypeDefinition` maps the Mandatory Parameters for each PDU type.  Particularly, neither SubmitMulti nor SubmitMultiResp are implemented, and messages of this type will neither encode nor decode properly.  It requires a bit of extra logic in the code to support these.  Additionally, there are no unit tests for a subset of the message types, so their encode/decode methods are not thoroughly tested.
-
-## TODO
-
-# Implement a maximum length parameter to prevent rapid buffer memory consumption in Peer object
