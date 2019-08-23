@@ -2,20 +2,22 @@ package smpp
 
 import (
 	"encoding/binary"
+	"io"
 	"net"
 )
 
 // NetworkStreamReader provides a mechanism for reading PDUs from an incoming TCP stream connection, breaking
 // the stream into PDUs
 type NetworkStreamReader struct {
-	connectionFromWhichToRead net.Conn
-	readBuffer                []byte
-	pduBuffer                 []byte
+	connectionFromWhichToRead  net.Conn
+	readBuffer                 []byte
+	pduBuffer                  []byte
+	attachedConnectionIsClosed bool
 }
 
 // NewNetworkStreamReader creates a NetworkStreamReader that operates on the identified connection
 func NewNetworkStreamReader(fromConnection net.Conn) *NetworkStreamReader {
-	return &NetworkStreamReader{connectionFromWhichToRead: fromConnection, readBuffer: make([]byte, 65536), pduBuffer: make([]byte, 0, 65536)}
+	return &NetworkStreamReader{connectionFromWhichToRead: fromConnection, readBuffer: make([]byte, 65536), pduBuffer: make([]byte, 0, 65536), attachedConnectionIsClosed: false}
 }
 
 // Read performs a read of the associated TCP stream and attempts to extract one or more PDUs from the
@@ -25,6 +27,9 @@ func (reader *NetworkStreamReader) Read() ([]*PDU, error) {
 	bytesRead, err := reader.connectionFromWhichToRead.Read(reader.readBuffer)
 
 	if err != nil {
+		if err == io.EOF {
+			reader.attachedConnectionIsClosed = true
+		}
 		return nil, err
 	}
 
@@ -69,4 +74,10 @@ func (reader *NetworkStreamReader) ExtractNextPDUs() ([]*PDU, error) {
 			return pdus, nil
 		}
 	}
+}
+
+// AttachedConnectionIsClosed returns true if the underlying TCP connection has
+// closed, which is determined during a Read() read operation
+func (reader *NetworkStreamReader) AttachedConnectionIsClosed() bool {
+	return reader.attachedConnectionIsClosed
 }
