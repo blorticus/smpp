@@ -7,8 +7,9 @@ import (
 	"net"
 	"os"
 	"path"
-	"smpp"
 	"strconv"
+
+	smpp "github.com/blorticus/smpp-go"
 )
 
 type outputter struct {

@@ -1,6 +1,7 @@
 package smpp
 
 import (
+	"io"
 	"net"
 	"testing"
 	"time"
@@ -195,5 +196,26 @@ func TestTwoMessagesTwoReads(t *testing.T) {
 
 	if len(pdus) != 1 {
 		t.Fatalf("Expected zero PDUs from fourth Read(), but got (%d)", len(pdus))
+	}
+}
+
+func TestRemoteConnectionClose(t *testing.T) {
+	conn := newFakeNetConn()
+	conn.nextReadError = io.EOF
+
+	reader := NewNetworkStreamReader(conn)
+
+	if reader.AttachedConnectionIsClosed() {
+		t.Errorf("Initial AttachedConnectionIsClosed() state should be false, but is true")
+	}
+
+	_, err := reader.Read()
+
+	if err == nil {
+		t.Errorf("Expected error on Read() after setting nextReadError but did not get one")
+	}
+
+	if reader.AttachedConnectionIsClosed() == false {
+		t.Errorf("Expected AttachedConnectionIsClosed() to be true after io.EOF error, but is false")
 	}
 }

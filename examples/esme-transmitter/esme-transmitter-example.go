@@ -7,8 +7,9 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"smpp"
 	"strconv"
+
+	smpp "github.com/blorticus/smpp-go"
 )
 
 func sendPDU(conn net.Conn, pdu *smpp.PDU, logger *log.Logger) {
